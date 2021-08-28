@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.mlseriesdemonstrator">
+
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <queries>
+
+        <!-- Camera -->
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT" />
+
+            <data android:mimeType="image/*" />
+        </intent>
+    </queries>
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.MLSeriesDemonstrator">
+        <activity android:name=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".image.ImageClassificationActivity"
+            android:screenOrientation="userPortrait" />
+        <activity
+            android:name=".image.FlowerIdentificationActivity"
+            android:screenOrientation="userPortrait" />
+        <activity
+            android:name=".object.ObjectDetectionActivity"
+            android:screenOrientation="userPortrait" />
+        <activity
+            android:name=".object.FaceDetectionActivity"
+            android:screenOrientation="userPortrait" />
+        <activity
+            android:name=".audio.AudioClassificationActivity"
+            android:screenOrientation="userPortrait" />
+        <activity
+            android:name=".audio.BirdSoundDetectorActivity"
+            android:screenOrientation="userPortrait" />
+        <activity android:name=".text.SpamTextDetectionActivity"
+            android:screenOrientation="userPortrait" />
+
+        <!-- make sure within the application tag, otherwise app will crash with XmlResourceParser errors -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.iago.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/fileprovider" />
+        </provider>
+    </application>
+
+</manifest>
