@@ -27,8 +27,6 @@ public class FaceDetectionActivity extends MLImageHelperActivity {
         FaceDetectorOptions highAccuracyOpts =
                 new FaceDetectorOptions.Builder()
                         .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
-                        .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
-                        .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
                         .enableTracking()
                         .build();
 
@@ -37,7 +35,7 @@ public class FaceDetectionActivity extends MLImageHelperActivity {
 
     @Override
     protected void runDetection(Bitmap bitmap) {
-        Bitmap finalBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, false);
+        Bitmap finalBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
         InputImage image = InputImage.fromBitmap(finalBitmap, 0);
 
         faceDetector.process(image)

@@ -81,7 +81,6 @@ public class BirdSoundDetectorActivity extends MLAudioHelperActivity {
                     }
                 }
 
-
                 // Sorting the results
                 Collections.sort(finalOutput, (o1, o2) -> (int) (o1.getScore() - o2.getScore()));
 

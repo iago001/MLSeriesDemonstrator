@@ -49,6 +49,8 @@ public class ObjectDetectionActivity extends MLImageHelperActivity {
                                 }
                                 if (!object.getLabels().isEmpty()) {
                                     list.add(new BoxWithText(object.getLabels().get(0).getText(), object.getBoundingBox()));
+                                } else {
+                                    list.add(new BoxWithText("Unknown", object.getBoundingBox()));
                                 }
                             }
                             getInputImageView().setImageBitmap(drawDetectionResult(bitmap, list));

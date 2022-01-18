@@ -2,6 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.mlseriesdemonstrator">
 
+    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
@@ -13,7 +14,6 @@
         </intent>
         <intent>
             <action android:name="android.intent.action.GET_CONTENT" />
-
             <data android:mimeType="image/*" />
         </intent>
     </queries>
@@ -25,7 +25,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MLSeriesDemonstrator">
-        <activity android:name=".MainActivity">
+        <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -53,10 +53,16 @@
         <activity android:name=".text.SpamTextDetectionActivity"
             android:screenOrientation="userPortrait" />
 
+        <activity android:name=".object.DriverDrowsinessDetectionActivity"
+            android:screenOrientation="userPortrait" />
+
+        <activity android:name=".object.PoseDetectionActivity"
+            android:screenOrientation="userPortrait" />
+
         <!-- make sure within the application tag, otherwise app will crash with XmlResourceParser errors -->
         <provider
             android:name="androidx.core.content.FileProvider"
-            android:authorities="com.iago.fileprovider"
+            android:authorities="com.iago.fileprovider1"
             android:exported="false"
             android:grantUriPermissions="true">
             <meta-data

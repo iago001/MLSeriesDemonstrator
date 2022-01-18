@@ -70,7 +70,7 @@ public abstract class MLImageHelperActivity extends AppCompatActivity {
         // wrap File object into a content provider
         // required for API >= 24
         // See https://guides.codepath.com/android/Sharing-Content-with-Intents#sharing-files-with-api-24-or-higher
-        Uri fileProvider = FileProvider.getUriForFile(this, "com.iago.fileprovider", photoFile);
+        Uri fileProvider = FileProvider.getUriForFile(this, "com.iago.fileprovider1", photoFile);
         intent.putExtra(MediaStore.EXTRA_OUTPUT, fileProvider);
 
         // If you call startActivityForResult() using an intent that no app can handle, your app will crash.
@@ -248,7 +248,9 @@ public abstract class MLImageHelperActivity extends AppCompatActivity {
             float fontSize = pen.getTextSize() * box.rect.width() / tagSize.width();
 
             // adjust the font size so texts are inside the bounding box
-            if (fontSize < pen.getTextSize()) pen.setTextSize(fontSize);
+            if (fontSize < pen.getTextSize()) {
+                pen.setTextSize(fontSize);
+            }
 
             float margin = (box.rect.width() - tagSize.width()) / 2.0F;
             if (margin < 0F) margin = 0F;

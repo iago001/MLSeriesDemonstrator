@@ -12,8 +12,8 @@ import com.example.mlseriesdemonstrator.R;
 
 public abstract class MLTextHelperActivity extends BaseHelperActivity {
 
-    private EditText inputEditText;
-    private TextView outputTextView;
+    protected EditText inputEditText;
+    protected TextView outputTextView;
     private Button sendButton;
 
     @Override

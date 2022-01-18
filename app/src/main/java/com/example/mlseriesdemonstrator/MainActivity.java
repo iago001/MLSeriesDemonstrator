@@ -17,8 +17,10 @@ import com.example.mlseriesdemonstrator.audio.AudioClassificationActivity;
 import com.example.mlseriesdemonstrator.audio.BirdSoundDetectorActivity;
 import com.example.mlseriesdemonstrator.image.FlowerIdentificationActivity;
 import com.example.mlseriesdemonstrator.image.ImageClassificationActivity;
+import com.example.mlseriesdemonstrator.object.DriverDrowsinessDetectionActivity;
 import com.example.mlseriesdemonstrator.object.FaceDetectionActivity;
 import com.example.mlseriesdemonstrator.object.ObjectDetectionActivity;
+import com.example.mlseriesdemonstrator.object.PoseDetectionActivity;
 import com.example.mlseriesdemonstrator.text.SpamTextDetectionActivity;
 
 import java.util.ArrayList;
@@ -39,6 +41,8 @@ public class MainActivity extends AppCompatActivity implements AlgoListener {
         arrayList.add(new Algo(R.drawable.baseline_music_note_black_48, "Audio Classification", AudioClassificationActivity.class));
         arrayList.add(new Algo(R.drawable.baseline_flutter_dash_black_48, "Bird Sound Identifier", BirdSoundDetectorActivity.class));
         arrayList.add(new Algo(R.drawable.baseline_comment_black_48, "Spam Text Detector", SpamTextDetectionActivity.class));
+        arrayList.add(new Algo(R.drawable.baseline_time_to_leave_black_48, "Driver Drowsiness Detector", DriverDrowsinessDetectionActivity.class));
+        arrayList.add(new Algo(R.drawable.baseline_accessibility_black_48, "Pose Detection", PoseDetectionActivity.class));
 
         AlgoAdapter algoAdapter = new AlgoAdapter(arrayList, this);
         RecyclerView recyclerView = findViewById(R.id.main_recycler_view);
