@@ -17,15 +17,20 @@
 package com.example.mlseriesdemonstrator.helpers.vision.posedetector;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import androidx.camera.core.ImageProxy;
+import androidx.camera.view.PreviewView;
 
 import com.example.mlseriesdemonstrator.helpers.vision.GraphicOverlay;
-import com.example.mlseriesdemonstrator.helpers.vision.VisionProcessorBase;
+import com.example.mlseriesdemonstrator.helpers.vision.VisionBaseProcessor;
 import com.example.mlseriesdemonstrator.helpers.vision.posedetector.classification.PoseClassifierProcessor;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.odml.image.BitmapMlImageBuilder;
 import com.google.android.odml.image.MlImage;
-import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.pose.Pose;
 import com.google.mlkit.vision.pose.PoseDetection;
 import com.google.mlkit.vision.pose.PoseDetector;
@@ -36,8 +41,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 /** A processor to run pose detector. */
-public class PoseDetectorProcessor
-    extends VisionProcessorBase<PoseDetectorProcessor.PoseWithClassification> {
+public class PoseDetectorProcessor extends VisionBaseProcessor<PoseDetectorProcessor.PoseWithClassification> {
   private static final String TAG = "PoseDetectorProcessor";
 
   private final PoseDetector detector;
@@ -47,8 +51,8 @@ public class PoseDetectorProcessor
   private final boolean rescaleZForVisualization;
   private final boolean runClassification;
   private final boolean isStreamMode;
-  private final Context context;
   private final Executor classificationExecutor;
+  private final Context context;
 
   private PoseClassifierProcessor poseClassifierProcessor;
   /** Internal class to hold Pose and classification results. */
@@ -70,35 +74,53 @@ public class PoseDetectorProcessor
     }
   }
 
+  private GraphicOverlay graphicOverlay;
+  private PreviewView previewView;
+
   public PoseDetectorProcessor(
-      Context context,
       PoseDetectorOptionsBase options,
       boolean showInFrameLikelihood,
       boolean visualizeZ,
       boolean rescaleZForVisualization,
       boolean runClassification,
-      boolean isStreamMode) {
-    super(context);
+      boolean isStreamMode,
+      Context context,
+      GraphicOverlay graphicOverlay,
+      PreviewView previewView) {
+    this.graphicOverlay = graphicOverlay;
+    this.previewView = previewView;
+    this.context = context;
     this.showInFrameLikelihood = showInFrameLikelihood;
     this.visualizeZ = visualizeZ;
     this.rescaleZForVisualization = rescaleZForVisualization;
     detector = PoseDetection.getClient(options);
     this.runClassification = runClassification;
     this.isStreamMode = isStreamMode;
-    this.context = context;
     classificationExecutor = Executors.newSingleThreadExecutor();
   }
 
-  @Override
   public void stop() {
-    super.stop();
     detector.close();
   }
-
-  @Override
-  protected Task<PoseWithClassification> detectInImage(InputImage image) {
+  public Task<PoseWithClassification> detectInImage(ImageProxy imageProxy, Bitmap bitmap, int rotationDegrees) {
+    MlImage mlImage = new BitmapMlImageBuilder(bitmap).setRotation(rotationDegrees).build();
+    int rotation = imageProxy.getImageInfo().getRotationDegrees();
+    // In order to correctly display the face bounds, the orientation of the analyzed
+    // image and that of the viewfinder have to match. Which is why the dimensions of
+    // the analyzed image are reversed if its rotation information is 90 or 270.
+    boolean reverseDimens = rotation == 90 || rotation == 270;
+    Log.d(TAG, "rotation: " + rotation);
+    int width;
+    int height;
+    if (reverseDimens) {
+      width = imageProxy.getHeight();
+      height =  imageProxy.getWidth();
+    } else {
+      width = imageProxy.getWidth();
+      height = imageProxy.getHeight();
+    }
     return detector
-        .process(image)
+        .process(mlImage)
         .continueWith(
             classificationExecutor,
             task -> {
@@ -111,32 +133,25 @@ public class PoseDetectorProcessor
                 classificationResult = poseClassifierProcessor.getPoseResult(pose);
               }
               return new PoseWithClassification(pose, classificationResult);
-            });
-  }
 
-  @Override
-  protected Task<PoseWithClassification> detectInImage(MlImage image) {
-    return detector
-        .process(image)
-        .continueWith(
-            classificationExecutor,
-            task -> {
-              Pose pose = task.getResult();
-              List<String> classificationResult = new ArrayList<>();
-              if (runClassification) {
-                if (poseClassifierProcessor == null) {
-                  poseClassifierProcessor = new PoseClassifierProcessor(context, isStreamMode);
-                }
-                classificationResult = poseClassifierProcessor.getPoseResult(pose);
+            }).addOnSuccessListener(new OnSuccessListener<PoseWithClassification>() {
+              @Override
+              public void onSuccess(PoseWithClassification poseWithClassification) {
+                Log.d(TAG, "on Success for pose detector");
+                onSuccessPoseClassified(poseWithClassification, width, height);
               }
-              return new PoseWithClassification(pose, classificationResult);
+
+            }).addOnFailureListener(new OnFailureListener() {
+              @Override
+              public void onFailure(@NonNull Exception e) {
+                Log.e(TAG, "Pose detection failed!", e);
+              }
             });
   }
 
-  @Override
-  protected void onSuccess(
-      @NonNull PoseWithClassification poseWithClassification,
-      @NonNull GraphicOverlay graphicOverlay) {
+  private void onSuccessPoseClassified(
+          @NonNull PoseWithClassification poseWithClassification, int width, int height) {
+    graphicOverlay.clear();
     graphicOverlay.add(
         new PoseGraphic(
             graphicOverlay,
@@ -144,17 +159,8 @@ public class PoseDetectorProcessor
             showInFrameLikelihood,
             visualizeZ,
             rescaleZForVisualization,
-            poseWithClassification.classificationResult));
-  }
-
-  @Override
-  protected void onFailure(@NonNull Exception e) {
-    Log.e(TAG, "Pose detection failed!", e);
-  }
-
-  @Override
-  protected boolean isMlImageEnabled(Context context) {
-    // Use MlImage in Pose Detection by default, change it to OFF to switch to InputImage.
-    return true;
+            poseWithClassification.classificationResult,
+            width,
+            height));
   }
 }

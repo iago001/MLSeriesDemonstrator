@@ -1,53 +1,82 @@
 package com.example.mlseriesdemonstrator.helpers;
 
+import static androidx.camera.view.PreviewView.*;
+
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.ImageFormat;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
+import android.media.Image;
 import android.os.Bundle;
-import android.util.Log;
+import android.view.Surface;
+import android.view.View;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.core.AspectRatio;
+import androidx.camera.core.CameraSelector;
+import androidx.camera.core.ExperimentalGetImage;
+import androidx.camera.core.ImageAnalysis;
+import androidx.camera.core.Preview;
+import androidx.camera.lifecycle.ProcessCameraProvider;
+import androidx.camera.view.PreviewView;
+import androidx.core.content.ContextCompat;
+import androidx.lifecycle.Observer;
 
 import com.example.mlseriesdemonstrator.R;
-import com.example.mlseriesdemonstrator.helpers.vision.CameraSource;
-import com.example.mlseriesdemonstrator.helpers.vision.CameraSourcePreview;
-import com.example.mlseriesdemonstrator.helpers.vision.FaceDetectorProcessor;
 import com.example.mlseriesdemonstrator.helpers.vision.GraphicOverlay;
-import com.example.mlseriesdemonstrator.helpers.vision.VisionProcessorBase;
+import com.example.mlseriesdemonstrator.helpers.vision.VisionBaseProcessor;
+import com.google.common.util.concurrent.ListenableFuture;
 
-import java.io.IOException;
+import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public abstract class MLVideoHelperActivity extends AppCompatActivity {
 
     private static final int REQUEST_CAMERA = 1001;
-    private static final String TAG = "MLVideoHelperActivity";
-    private CameraSourcePreview preview;
-    private GraphicOverlay graphicOverlay;
-    protected CameraSource cameraSource;
+    protected PreviewView previewView;
+    protected GraphicOverlay graphicOverlay;
+    private TextView outputTextView;
+    private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
+    private Executor executor = Executors.newSingleThreadExecutor();
+
+    private VisionBaseProcessor processor;
+    private ImageAnalysis imageAnalysis;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_video_helper);
+        setContentView(R.layout.activity_video_helper_new);
 
-        preview = findViewById(R.id.camera_source_preview);
+        previewView = findViewById(R.id.camera_source_preview);
         graphicOverlay = findViewById(R.id.graphic_overlay);
+        outputTextView = findViewById(R.id.output_text_view);
+
+        cameraProviderFuture = ProcessCameraProvider.getInstance(getApplicationContext());
+
+        processor = setProcessor();
 
         if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA);
         } else {
             initSource();
-            startCameraSource();
         }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-
-        if (cameraSource != null) {
-            cameraSource.release();
+        if (processor != null) {
+            processor.stop();
         }
     }
 
@@ -57,39 +86,117 @@ public abstract class MLVideoHelperActivity extends AppCompatActivity {
 
         if (requestCode == REQUEST_CAMERA && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             initSource();
-            startCameraSource();
         }
+    }
+
+    protected void setOutputText(String text) {
+        outputTextView.setText(text);
     }
 
     private void initSource() {
-        if (cameraSource == null) {
-            cameraSource = new CameraSource(this, graphicOverlay);
-        }
-        setProcessor();
+
+        cameraProviderFuture.addListener(() -> {
+            try {
+                ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
+                bindPreview(cameraProvider);
+            } catch (ExecutionException | InterruptedException e) {
+                // No errors need to be handled for this Future.
+                // This should never be reached.
+            }
+        }, ContextCompat.getMainExecutor(getApplicationContext()));
     }
 
-    protected abstract void setProcessor();
+    void bindPreview(@NonNull ProcessCameraProvider cameraProvider) {
+        int lensFacing = CameraSelector.LENS_FACING_BACK;
+        Preview preview = new Preview.Builder()
+                .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+                .build();
+        preview.setSurfaceProvider(previewView.getSurfaceProvider());
+
+        CameraSelector cameraSelector = new CameraSelector.Builder()
+                .requireLensFacing(lensFacing)
+                .build();
+
+        imageAnalysis =
+                new ImageAnalysis.Builder()
+                        .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+                        .build();
+
+        setFaceDetector(lensFacing);
+        cameraProvider.bindToLifecycle(this, cameraSelector, imageAnalysis, preview);
+    }
 
     /**
-     * Starts or restarts the camera source, if it exists. If the camera source doesn't exist yet
-     * (e.g., because onResume was called before the camera source was created), this will be called
-     * again when the camera source is created.
+     * The face detector provides face bounds whose coordinates, width and height depend on the
+     * preview's width and height, which is guaranteed to be available after the preview starts
+     * streaming.
      */
-    private void startCameraSource() {
-        if (cameraSource != null) {
-            try {
-                if (preview == null) {
-                    Log.d(TAG, "resume: Preview is null");
+    private void setFaceDetector(int lensFacing) {
+        previewView.getPreviewStreamState().observe(this, new Observer<StreamState>() {
+            @Override
+            public void onChanged(StreamState streamState) {
+                if (streamState != StreamState.STREAMING) {
+                    return;
                 }
-                if (graphicOverlay == null) {
-                    Log.d(TAG, "resume: graphOverlay is null");
+
+                View preview = previewView.getChildAt(0);
+                float width = preview.getWidth() * preview.getScaleX();
+                float height = preview.getHeight() * preview.getScaleY();
+                float rotation = preview.getDisplay().getRotation();
+                if (rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270) {
+                    float temp = width;
+                    width = height;
+                    height = temp;
                 }
-                preview.start(cameraSource, graphicOverlay);
-            } catch (IOException e) {
-                Log.e(TAG, "Unable to start camera source.", e);
-                cameraSource.release();
-                cameraSource = null;
+
+                imageAnalysis.setAnalyzer(
+                        executor,
+                        createFaceDetector((int) width, (int) height, lensFacing)
+                );
+                previewView.getPreviewStreamState().removeObserver(this);
             }
-        }
+        });
     }
+
+    @OptIn(markerClass = ExperimentalGetImage.class)
+    private ImageAnalysis.Analyzer createFaceDetector(int width, int height, int lensFacing) {
+        graphicOverlay.setPreviewProperties(width, height, lensFacing);
+        return imageProxy -> {
+            if (imageProxy.getImage() == null) {
+                imageProxy.close();
+                return;
+            }
+            int rotationDegrees = imageProxy.getImageInfo().getRotationDegrees();
+            // converting from YUV format
+            processor.detectInImage(imageProxy, toBitmap(imageProxy.getImage()), rotationDegrees);
+            // after done, release the ImageProxy object
+            imageProxy.close();
+        };
+    }
+
+    private Bitmap toBitmap(Image image) {
+        Image.Plane[] planes = image.getPlanes();
+        ByteBuffer yBuffer = planes[0].getBuffer();
+        ByteBuffer uBuffer = planes[1].getBuffer();
+        ByteBuffer vBuffer = planes[2].getBuffer();
+
+        int ySize = yBuffer.remaining();
+        int uSize = uBuffer.remaining();
+        int vSize = vBuffer.remaining();
+
+        byte[] nv21 = new byte[ySize + uSize + vSize];
+        //U and V are swapped
+        yBuffer.get(nv21, 0, ySize);
+        vBuffer.get(nv21, ySize, vSize);
+        uBuffer.get(nv21, ySize + vSize, uSize);
+
+        YuvImage yuvImage = new YuvImage(nv21, ImageFormat.NV21, image.getWidth(), image.getHeight(), null);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        yuvImage.compressToJpeg(new Rect(0, 0, yuvImage.getWidth(), yuvImage.getHeight()), 75, out);
+
+        byte[] imageBytes = out.toByteArray();
+        return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+    }
+
+    protected abstract VisionBaseProcessor setProcessor();
 }

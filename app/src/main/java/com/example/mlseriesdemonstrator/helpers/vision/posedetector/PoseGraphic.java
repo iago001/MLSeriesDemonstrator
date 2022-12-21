@@ -59,8 +59,10 @@ public class PoseGraphic extends GraphicOverlay.Graphic {
       boolean showInFrameLikelihood,
       boolean visualizeZ,
       boolean rescaleZForVisualization,
-      List<String> poseClassification) {
-    super(overlay);
+      List<String> poseClassification,
+      int width,
+      int height) {
+    super(overlay, width, height);
     this.pose = pose;
     this.showInFrameLikelihood = showInFrameLikelihood;
     this.visualizeZ = visualizeZ;
@@ -200,7 +202,7 @@ public class PoseGraphic extends GraphicOverlay.Graphic {
     }
   }
 
-    void drawPoint(Canvas canvas, PoseLandmark landmark, Paint paint) {
+  void drawPoint(Canvas canvas, PoseLandmark landmark, Paint paint) {
     PointF3D point = landmark.getPosition3D();
     maybeUpdatePaintColor(paint, canvas, point.getZ());
     canvas.drawCircle(translateX(point.getX()), translateY(point.getY()), DOT_RADIUS, paint);
@@ -233,8 +235,8 @@ public class PoseGraphic extends GraphicOverlay.Graphic {
     float zUpperBoundInScreenPixel;
 
     if (rescaleZForVisualization) {
-      zLowerBoundInScreenPixel = min(-0.001f, scale(zMin));
-      zUpperBoundInScreenPixel = max(0.001f, scale(zMax));
+      zLowerBoundInScreenPixel = min(-0.001f, zMin);
+      zUpperBoundInScreenPixel = max(0.001f, zMax);
     } else {
       // By default, assume the range of z value in screen pixel is [-canvasWidth, canvasWidth].
       float defaultRangeFactor = 1f;
@@ -242,7 +244,7 @@ public class PoseGraphic extends GraphicOverlay.Graphic {
       zUpperBoundInScreenPixel = defaultRangeFactor * canvas.getWidth();
     }
 
-    float zInScreenPixel = scale(zInImagePixel);
+    float zInScreenPixel = zInImagePixel;
 
     if (zInScreenPixel < 0) {
       // Sets up the paint to draw the body line in red if it is in front of the z origin.

@@ -25,7 +25,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MLSeriesDemonstrator">
-        <activity android:name=".MainActivity" android:exported="true">
+        <activity android:name=".MainActivity" android:exported="true" android:screenOrientation="userPortrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -57,6 +57,9 @@
             android:screenOrientation="userPortrait" />
 
         <activity android:name=".object.PoseDetectionActivity"
+            android:screenOrientation="userPortrait" />
+
+        <activity android:name=".object.VisitorAnalysisActivity"
             android:screenOrientation="userPortrait" />
 
         <!-- make sure within the application tag, otherwise app will crash with XmlResourceParser errors -->

@@ -21,6 +21,7 @@ import com.example.mlseriesdemonstrator.object.DriverDrowsinessDetectionActivity
 import com.example.mlseriesdemonstrator.object.FaceDetectionActivity;
 import com.example.mlseriesdemonstrator.object.ObjectDetectionActivity;
 import com.example.mlseriesdemonstrator.object.PoseDetectionActivity;
+import com.example.mlseriesdemonstrator.object.VisitorAnalysisActivity;
 import com.example.mlseriesdemonstrator.text.SpamTextDetectionActivity;
 
 import java.util.ArrayList;
@@ -43,6 +44,7 @@ public class MainActivity extends AppCompatActivity implements AlgoListener {
         arrayList.add(new Algo(R.drawable.baseline_comment_black_48, "Spam Text Detector", SpamTextDetectionActivity.class));
         arrayList.add(new Algo(R.drawable.baseline_time_to_leave_black_48, "Driver Drowsiness Detector", DriverDrowsinessDetectionActivity.class));
         arrayList.add(new Algo(R.drawable.baseline_accessibility_black_48, "Pose Detection", PoseDetectionActivity.class));
+        arrayList.add(new Algo(R.drawable.baseline_portrait_black_48, "Visitor Analysis", VisitorAnalysisActivity.class));
 
         AlgoAdapter algoAdapter = new AlgoAdapter(arrayList, this);
         RecyclerView recyclerView = findViewById(R.id.main_recycler_view);

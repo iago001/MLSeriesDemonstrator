@@ -1,25 +1,12 @@
-/*
- * Copyright 2020 Google LLC. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.example.mlseriesdemonstrator.helpers.vision;
 
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PointF;
+import android.graphics.RectF;
+import android.util.Log;
+
 import com.google.mlkit.vision.face.Face;
 import com.google.mlkit.vision.face.FaceContour;
 import com.google.mlkit.vision.face.FaceLandmark;
@@ -56,14 +43,24 @@ public class FaceGraphic extends GraphicOverlay.Graphic {
   private final Paint[] boxPaints;
   private final Paint[] labelPaints;
   private boolean isDrowsy;
+  public RectF faceBoundingBox;
+  private Face face;
+  public int age;
+  public int gender;
 
-  private volatile Face face;
+  public FaceGraphic(GraphicOverlay overlay, Face face, boolean isDrowsy, int width, int height) {
+    this(overlay, face, isDrowsy, width, height, -1, -1);
+  }
 
-  FaceGraphic(GraphicOverlay overlay, Face face, boolean isDrowsy) {
-    super(overlay);
+  public FaceGraphic(GraphicOverlay overlay, Face face, boolean isDrowsy, int width, int height, int age, int gender) {
+      super(overlay, width, height);
 
     this.isDrowsy = isDrowsy;
     this.face = face;
+    this.age = age;
+    this. gender = gender;
+    this.faceBoundingBox = transform(face.getBoundingBox());
+
     final int selectedColor = Color.WHITE;
 
     facePositionPaint = new Paint();
@@ -92,21 +89,20 @@ public class FaceGraphic extends GraphicOverlay.Graphic {
   /** Draws the face annotations for position on the supplied canvas. */
   @Override
   public void draw(Canvas canvas) {
-    Face face = this.face;
-    if (face == null) {
+    if (faceBoundingBox == null) {
       return;
     }
 
     // Draws a circle at the position of the detected face, with the face's track id below.
-    float x = translateX(face.getBoundingBox().centerX());
-    float y = translateY(face.getBoundingBox().centerY());
+    float x = faceBoundingBox.centerX();
+    float y = faceBoundingBox.centerY();
     canvas.drawCircle(x, y, FACE_POSITION_RADIUS, facePositionPaint);
 
     // Calculate positions.
-    float left = x - scale(face.getBoundingBox().width() / 2.0f);
-    float top = y - scale(face.getBoundingBox().height() / 2.0f);
-    float right = x + scale(face.getBoundingBox().width() / 2.0f);
-    float bottom = y + scale(face.getBoundingBox().height() / 2.0f);
+    float left = faceBoundingBox.left;
+    float top = faceBoundingBox.top;
+    float right = faceBoundingBox.right;
+    float bottom = faceBoundingBox.bottom;
     float lineHeight = ID_TEXT_SIZE + BOX_STROKE_WIDTH;
     float yLabelOffset = (face.getTrackingId() == null) ? 0 : -lineHeight;
 
@@ -255,15 +251,26 @@ public class FaceGraphic extends GraphicOverlay.Graphic {
           idPaints[colorID]);
     }
 
-    canvas.drawText(
-        "EulerX: " + face.getHeadEulerAngleX(), left, top + yLabelOffset, idPaints[colorID]);
-    yLabelOffset += lineHeight;
-    canvas.drawText(
-        "EulerY: " + face.getHeadEulerAngleY(), left, top + yLabelOffset, idPaints[colorID]);
-    yLabelOffset += lineHeight;
-    canvas.drawText(
-        "EulerZ: " + face.getHeadEulerAngleZ(), left, top + yLabelOffset, idPaints[colorID]);
+//    canvas.drawText(
+//        "EulerX: " + face.getHeadEulerAngleX(), left, top + yLabelOffset, idPaints[colorID]);
+//    yLabelOffset += lineHeight;
+//    canvas.drawText(
+//        "EulerY: " + face.getHeadEulerAngleY(), left, top + yLabelOffset, idPaints[colorID]);
+//    yLabelOffset += lineHeight;
+//    canvas.drawText(
+//        "EulerZ: " + face.getHeadEulerAngleZ(), left, top + yLabelOffset, idPaints[colorID]);
+//    yLabelOffset += lineHeight;
 
+    if (age > -1) {
+      canvas.drawText(
+              "Age: " + age, left, top + yLabelOffset, idPaints[colorID]);
+    }
+    yLabelOffset += lineHeight;
+    Log.d("xx", "gender " + gender);
+    if (gender != -1) {
+      canvas.drawText("G: " + (gender == 0 ? "Male" : "Female"), left, top + yLabelOffset, idPaints[colorID]);
+    }
+    yLabelOffset += lineHeight;
     // Draw facial landmarks
     drawFaceLandmark(canvas, FaceLandmark.LEFT_EYE);
     drawFaceLandmark(canvas, FaceLandmark.RIGHT_EYE);

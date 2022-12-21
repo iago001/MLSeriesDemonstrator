@@ -1,25 +1,16 @@
-/*
- * Copyright 2020 Google LLC. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.example.mlseriesdemonstrator.helpers.vision;
 
-import android.content.Context;
+
+import android.graphics.Bitmap;
 import android.graphics.PointF;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import androidx.annotation.OptIn;
+import androidx.camera.core.ExperimentalGetImage;
+import androidx.camera.core.ImageProxy;
+
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.face.Face;
@@ -32,17 +23,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
-/** Face Detector Demo. */
-public class FaceDetectorProcessor extends VisionProcessorBase<List<Face>> {
+/** Face Drowsiness Detector Demo. */
+public class FaceDrowsinessDetectorProcessor extends VisionBaseProcessor<List<Face>> {
 
-  private static final String TAG = "FaceDetectorProcessor";
+  private static final String MANUAL_TESTING_LOG = "FaceDetectorProcessor";
 
   private final FaceDetector detector;
-
+  private final GraphicOverlay graphicOverlay;
   private final HashMap<Integer, FaceDrowsiness> drowsinessHashMap = new HashMap<>();
 
-  public FaceDetectorProcessor(Context context) {
-    super(context);
+  public FaceDrowsinessDetectorProcessor(GraphicOverlay graphicOverlay) {
+    this.graphicOverlay = graphicOverlay;
     FaceDetectorOptions faceDetectorOptions = new FaceDetectorOptions.Builder()
           .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
           .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
@@ -53,29 +44,50 @@ public class FaceDetectorProcessor extends VisionProcessorBase<List<Face>> {
     detector = FaceDetection.getClient(faceDetectorOptions);
   }
 
-  @Override
-  public void stop() {
-    super.stop();
-    detector.close();
-  }
+  @OptIn(markerClass = ExperimentalGetImage.class)
+  public Task<List<Face>> detectInImage(ImageProxy imageProxy, Bitmap bitmap, int rotationDegrees) {
+    InputImage inputImage = InputImage.fromMediaImage(imageProxy.getImage(), rotationDegrees);
+    int rotation = rotationDegrees;
 
-  @Override
-  protected Task<List<Face>> detectInImage(InputImage image) {
-    return detector.process(image);
-  }
-
-  @Override
-  protected void onSuccess(@NonNull List<Face> faces, @NonNull GraphicOverlay graphicOverlay) {
-    for (Face face : faces) {
-      FaceDrowsiness faceDrowsiness = drowsinessHashMap.get(face.getTrackingId());
-      if (faceDrowsiness == null) {
-        faceDrowsiness = new FaceDrowsiness();
-        drowsinessHashMap.put(face.getTrackingId(), faceDrowsiness);
-      }
-      boolean isDrowsy = faceDrowsiness.isDrowsy(face);
-      graphicOverlay.add(new FaceGraphic(graphicOverlay, face, isDrowsy));
-      logExtrasForTesting(face);
+    // In order to correctly display the face bounds, the orientation of the analyzed
+    // image and that of the viewfinder have to match. Which is why the dimensions of
+    // the analyzed image are reversed if its rotation information is 90 or 270.
+    boolean reverseDimens = rotation == 90 || rotation == 270;
+    int width;
+    int height;
+    if (reverseDimens) {
+      width = imageProxy.getHeight();
+      height =  imageProxy.getWidth();
+    } else {
+      width = imageProxy.getWidth();
+      height = imageProxy.getHeight();
     }
+    return detector.process(inputImage)
+            .addOnSuccessListener(new OnSuccessListener<List<Face>>() {
+              @Override
+              public void onSuccess(List<Face> faces) {
+                graphicOverlay.clear();
+                for (Face face : faces) {
+                  if (!drowsinessHashMap.containsKey(face.getTrackingId())) {
+                    FaceDrowsiness faceDrowsiness = new FaceDrowsiness();
+                    drowsinessHashMap.put(face.getTrackingId(), faceDrowsiness);
+                  }
+                  boolean isDrowsy = drowsinessHashMap.get(face.getTrackingId()).isDrowsy(face);
+                  FaceGraphic faceGraphic = new FaceGraphic(graphicOverlay, face, isDrowsy, width, height);
+                  graphicOverlay.add(faceGraphic);
+                }
+              }
+            })
+            .addOnFailureListener(new OnFailureListener() {
+              @Override
+              public void onFailure(@NonNull Exception e) {
+                // intentionally left empty
+              }
+            });
+  }
+
+  public void stop() {
+    detector.close();
   }
 
   private static void logExtrasForTesting(Face face) {
@@ -139,10 +151,5 @@ public class FaceDetectorProcessor extends VisionProcessorBase<List<Face>> {
       Log.v(MANUAL_TESTING_LOG, "face smiling probability: " + face.getSmilingProbability());
       Log.v(MANUAL_TESTING_LOG, "face tracking id: " + face.getTrackingId());
     }
-  }
-
-  @Override
-  protected void onFailure(@NonNull Exception e) {
-    Log.e(TAG, "Face detection failed " + e);
   }
 }

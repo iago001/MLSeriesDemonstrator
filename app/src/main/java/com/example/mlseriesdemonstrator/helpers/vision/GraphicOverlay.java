@@ -1,67 +1,29 @@
-/*
- * Copyright 2020 Google LLC. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.example.mlseriesdemonstrator.helpers.vision;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Matrix;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.View;
+
+import androidx.camera.core.CameraSelector;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A view which renders a series of custom graphics to be overlayed on top of an associated preview
+ * A view which renders a series of custom graphics to be overlaid on top of an associated preview
  * (i.e., the camera preview). The creator can add graphics objects, update the objects, and remove
  * them, triggering the appropriate drawing and invalidation within the view.
- *
- * <p>Supports scaling and mirroring of the graphics relative the camera's preview properties. The
- * idea is that detection items are expressed in terms of an image size, but need to be scaled up
- * to the full view size, and also mirrored in the case of the front-facing camera.
- *
- * <p>Associated {@link Graphic} items should use the following methods to convert to view
- * coordinates for the graphics that are drawn:
- *
- * <ol>
- *   <li>{@link Graphic#scale(float)} adjusts the size of the supplied value from the image scale
- *       to the view scale.
- *   <li>{@link Graphic#translateX(float)} and {@link Graphic#translateY(float)} adjust the
- *       coordinate from the image's coordinate system to the view coordinate system.
- * </ol>
  */
 public class GraphicOverlay extends View {
   private final Object lock = new Object();
   private final List<Graphic> graphics = new ArrayList<>();
-  // Matrix for transforming from image coordinates to overlay view coordinates.
-  private final Matrix transformationMatrix = new Matrix();
 
-  private int imageWidth;
-  private int imageHeight;
-  // The factor of overlay View size to image size. Anything in the image coordinates need to be
-  // scaled by this amount to fit with the area of overlay View.
-  private float scaleFactor = 1.0f;
-  // The number of horizontal pixels needed to be cropped on each side to fit the image with the
-  // area of overlay View after scaling.
-  private float postScaleWidthOffset;
-  // The number of vertical pixels needed to be cropped on each side to fit the image with the
-  // area of overlay View after scaling.
-  private float postScaleHeightOffset;
-  private boolean isImageFlipped;
-  private boolean needUpdateTransformation = true;
+  public int previewWidth;
+  public int previewHeight;
+  public boolean isLensFacingFront;
 
   /**
    * Base class for a custom graphics object to be rendered within the graphic overlay. Subclass
@@ -69,10 +31,17 @@ public class GraphicOverlay extends View {
    * instances to the overlay using {@link GraphicOverlay#add(Graphic)}.
    */
   public abstract static class Graphic {
-    private GraphicOverlay overlay;
 
-    public Graphic(GraphicOverlay overlay) {
+    private final int imageWidth;
+
+    private final int imageHeight;
+
+    private final GraphicOverlay overlay;
+
+    public Graphic(GraphicOverlay overlay, int width, int height) {
       this.overlay = overlay;
+      imageWidth = width;
+      imageHeight = height;
     }
 
     /**
@@ -80,8 +49,6 @@ public class GraphicOverlay extends View {
      * to view coordinates for the graphics that are drawn:
      *
      * <ol>
-     *   <li>{@link Graphic#scale(float)} adjusts the size of the supplied value from the image
-     *       scale to the view scale.
      *   <li>{@link Graphic#translateX(float)} and {@link Graphic#translateY(float)} adjust the
      *       coordinate from the image's coordinate system to the view coordinate system.
      * </ol>
@@ -90,43 +57,51 @@ public class GraphicOverlay extends View {
      */
     public abstract void draw(Canvas canvas);
 
-    /** Adjusts the supplied value from the image scale to the view scale. */
-    public float scale(float imagePixel) {
-      return imagePixel * overlay.scaleFactor;
-    }
+    public RectF transform(Rect rect) {
+      float scaleX = overlay.previewWidth / (float) imageWidth;
+      float scaleY = overlay.previewHeight / (float) imageHeight;
+      // If the front camera lens is being used, reverse the right/left coordinates
+      float flippedLeft;
+      if (overlay.isLensFacingFront)
+        flippedLeft = imageWidth - rect.right;
+      else
+        flippedLeft = rect.left;
+      float flippedRight;
+      if (overlay.isLensFacingFront)
+        flippedRight = imageWidth - rect.left;
+      else
+        flippedRight = rect.right;
 
-    /** Returns the application context of the app. */
-    public Context getApplicationContext() {
-      return overlay.getContext().getApplicationContext();
-    }
+      // Scale all coordinates to match preview
+      float scaledLeft = scaleX * flippedLeft;
+      float scaledTop = scaleY * rect.top;
+      float scaledRight = scaleX * flippedRight;
+      float scaledBottom = scaleY * rect.bottom;
 
-    public boolean isImageFlipped() {
-      return overlay.isImageFlipped;
+      return new RectF(scaledLeft, scaledTop, scaledRight, scaledBottom);
     }
 
     /**
      * Adjusts the x coordinate from the image's coordinate system to the view coordinate system.
      */
     public float translateX(float x) {
-      if (overlay.isImageFlipped) {
-        return overlay.getWidth() - (scale(x) - overlay.postScaleWidthOffset);
+      float scaleX = overlay.previewWidth / (float) imageWidth;
+
+      float flippedX;
+      if (overlay.isLensFacingFront) {
+        flippedX = imageWidth - x;
       } else {
-        return scale(x) - overlay.postScaleWidthOffset;
+        flippedX = x;
       }
+      return flippedX * scaleX;
     }
 
     /**
      * Adjusts the y coordinate from the image's coordinate system to the view coordinate system.
      */
     public float translateY(float y) {
-      return scale(y) - overlay.postScaleHeightOffset;
-    }
-
-    /**
-     * Returns a {@link Matrix} for transforming from image coordinates to overlay view coordinates.
-     */
-    public Matrix getTransformationMatrix() {
-      return overlay.transformationMatrix;
+      float scaleY = overlay.previewHeight / (float) imageHeight;
+      return y * scaleY;
     }
 
     public void postInvalidate() {
@@ -138,7 +113,7 @@ public class GraphicOverlay extends View {
     super(context, attrs);
     addOnLayoutChangeListener(
         (view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) ->
-            needUpdateTransformation = true);
+            postInvalidate());
   }
 
   /** Removes all graphics from the overlay. */
@@ -154,6 +129,7 @@ public class GraphicOverlay extends View {
     synchronized (lock) {
       graphics.add(graphic);
     }
+    postInvalidate();
   }
 
   /** Removes a graphic from the overlay. */
@@ -164,73 +140,21 @@ public class GraphicOverlay extends View {
     postInvalidate();
   }
 
-  /**
-   * Sets the source information of the image being processed by detectors, including size and
-   * whether it is flipped, which informs how to transform image coordinates later.
-   *
-   * @param imageWidth the width of the image sent to ML Kit detectors
-   * @param imageHeight the height of the image sent to ML Kit detectors
-   * @param isFlipped whether the image is flipped. Should set it to true when the image is from the
-   *     front camera.
-   */
-  public void setImageSourceInfo(int imageWidth, int imageHeight, boolean isFlipped) {
-    synchronized (lock) {
-      this.imageWidth = imageWidth;
-      this.imageHeight = imageHeight;
-      this.isImageFlipped = isFlipped;
-      needUpdateTransformation = true;
-    }
-    postInvalidate();
-  }
-
-  public int getImageWidth() {
-    return imageWidth;
-  }
-
-  public int getImageHeight() {
-    return imageHeight;
-  }
-
-  private void updateTransformationIfNeeded() {
-    if (!needUpdateTransformation || imageWidth <= 0 || imageHeight <= 0) {
-      return;
-    }
-    float viewAspectRatio = (float) getWidth() / getHeight();
-    float imageAspectRatio = (float) imageWidth / imageHeight;
-    postScaleWidthOffset = 0;
-    postScaleHeightOffset = 0;
-    if (viewAspectRatio > imageAspectRatio) {
-      // The image needs to be vertically cropped to be displayed in this view.
-      scaleFactor = (float) getWidth() / imageWidth;
-      postScaleHeightOffset = ((float) getWidth() / imageAspectRatio - getHeight()) / 2;
-    } else {
-      // The image needs to be horizontally cropped to be displayed in this view.
-      scaleFactor = (float) getHeight() / imageHeight;
-      postScaleWidthOffset = ((float) getHeight() * imageAspectRatio - getWidth()) / 2;
-    }
-
-    transformationMatrix.reset();
-    transformationMatrix.setScale(scaleFactor, scaleFactor);
-    transformationMatrix.postTranslate(-postScaleWidthOffset, -postScaleHeightOffset);
-
-    if (isImageFlipped) {
-      transformationMatrix.postScale(-1f, 1f, getWidth() / 2f, getHeight() / 2f);
-    }
-
-    needUpdateTransformation = false;
-  }
-
   /** Draws the overlay with its associated graphic objects. */
   @Override
   protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
 
     synchronized (lock) {
-      updateTransformationIfNeeded();
-
       for (Graphic graphic : graphics) {
         graphic.draw(canvas);
       }
     }
+  }
+
+  public void setPreviewProperties(int previewWidth, int previewHeight, int lensFacing) {
+    this.previewWidth = previewWidth;
+    this.previewHeight = previewHeight;
+    this.isLensFacingFront = CameraSelector.LENS_FACING_FRONT == lensFacing;
   }
 }
