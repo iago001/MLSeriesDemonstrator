@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.RectF;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.mlkit.vision.face.Face;
@@ -47,6 +48,7 @@ public class FaceGraphic extends GraphicOverlay.Graphic {
   private Face face;
   public int age;
   public int gender;
+  public String name;
 
   public FaceGraphic(GraphicOverlay overlay, Face face, boolean isDrowsy, int width, int height) {
     this(overlay, face, isDrowsy, width, height, -1, -1);
@@ -194,12 +196,14 @@ public class FaceGraphic extends GraphicOverlay.Graphic {
       yLabelOffset += lineHeight;
     }
 
-    canvas.drawText(
-            "Drowsy: " + String.format(Locale.US, "%s", isDrowsy),
-            left,
-            top + yLabelOffset,
-            idPaints[colorID]);
-    yLabelOffset += lineHeight;
+    if (face.getLeftEyeOpenProbability() != null) {
+      canvas.drawText(
+              "Drowsy: " + String.format(Locale.US, "%s", isDrowsy),
+              left,
+              top + yLabelOffset,
+              idPaints[colorID]);
+      yLabelOffset += lineHeight;
+    }
 
     FaceLandmark leftEye = face.getLandmark(FaceLandmark.LEFT_EYE);
     if (face.getLeftEyeOpenProbability() != null) {
@@ -271,6 +275,12 @@ public class FaceGraphic extends GraphicOverlay.Graphic {
       canvas.drawText("G: " + (gender == 0 ? "Male" : "Female"), left, top + yLabelOffset, idPaints[colorID]);
     }
     yLabelOffset += lineHeight;
+
+    if (!TextUtils.isEmpty(name)) {
+      canvas.drawText("Name: " + name, left, top + yLabelOffset, idPaints[colorID]);
+    }
+    yLabelOffset += lineHeight;
+
     // Draw facial landmarks
     drawFaceLandmark(canvas, FaceLandmark.LEFT_EYE);
     drawFaceLandmark(canvas, FaceLandmark.RIGHT_EYE);

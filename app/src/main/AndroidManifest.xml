@@ -62,6 +62,9 @@
         <activity android:name=".object.VisitorAnalysisActivity"
             android:screenOrientation="userPortrait" />
 
+        <activity android:name=".object.FaceRecognitionActivity"
+            android:screenOrientation="userPortrait" />
+
         <!-- make sure within the application tag, otherwise app will crash with XmlResourceParser errors -->
         <provider
             android:name="androidx.core.content.FileProvider"

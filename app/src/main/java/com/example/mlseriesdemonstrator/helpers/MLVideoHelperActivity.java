@@ -32,6 +32,7 @@ import androidx.lifecycle.Observer;
 import com.example.mlseriesdemonstrator.R;
 import com.example.mlseriesdemonstrator.helpers.vision.GraphicOverlay;
 import com.example.mlseriesdemonstrator.helpers.vision.VisionBaseProcessor;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.ByteArrayOutputStream;
@@ -46,6 +47,7 @@ public abstract class MLVideoHelperActivity extends AppCompatActivity {
     protected PreviewView previewView;
     protected GraphicOverlay graphicOverlay;
     private TextView outputTextView;
+    private ExtendedFloatingActionButton addFaceButton;
     private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
     private Executor executor = Executors.newSingleThreadExecutor();
 
@@ -60,6 +62,7 @@ public abstract class MLVideoHelperActivity extends AppCompatActivity {
         previewView = findViewById(R.id.camera_source_preview);
         graphicOverlay = findViewById(R.id.graphic_overlay);
         outputTextView = findViewById(R.id.output_text_view);
+        addFaceButton = findViewById(R.id.button_add_face);
 
         cameraProviderFuture = ProcessCameraProvider.getInstance(getApplicationContext());
 
@@ -199,4 +202,12 @@ public abstract class MLVideoHelperActivity extends AppCompatActivity {
     }
 
     protected abstract VisionBaseProcessor setProcessor();
+
+    public void makeAddFaceVisible() {
+        addFaceButton.setVisibility(View.VISIBLE);
+    }
+
+    public void onAddFaceClicked(View view) {
+
+    }
 }
