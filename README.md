@@ -5,14 +5,25 @@ Demonstrator app for various use cases in Machine Learning using MLKit and Tenso
 Youtube playlist: https://www.youtube.com/playlist?list=PLRX9Q8jR15s1ygC_apa-iTftCqrcdPIkF
 
 ## Image Classification
+![image_classify](https://user-images.githubusercontent.com/14807740/213406321-0e3efeb3-ef45-4245-a47f-e658cbc087bb.png)
+
 ## Flower Identification
+![flower](https://user-images.githubusercontent.com/14807740/213406351-922e40f2-8c41-4ea3-8af3-edcf6652b67a.png)
+
 ## Object detection
+![object](https://user-images.githubusercontent.com/14807740/213406377-fe96014a-92b2-4a1c-8e16-955ced358afb.png)
+
 ## Face detection
-![github_pic](https://user-images.githubusercontent.com/14807740/213404303-d5ef751b-d05d-40dc-b9ad-37edbe3827ce.png)
+![face](https://user-images.githubusercontent.com/14807740/213406403-afbdae9d-049a-45b8-9742-6d9fc9df725a.png)
+
 
 ## Audio classification
 ## Bird Sound Identifier
+![bird_sound](https://user-images.githubusercontent.com/14807740/213406436-6109b9fa-4d43-42ac-a561-5e06aa5548d5.png)
+
 ## Spam text detector
+![spam](https://user-images.githubusercontent.com/14807740/213406478-d062c824-60fd-4f51-8a23-3f9305bf101d.png)
+
 ## Driver Drowsiness detector
 ## Pose Detection
 ## Visitor Analysis (Age and Gender estimation)
