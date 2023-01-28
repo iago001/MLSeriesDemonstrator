@@ -1,4 +1,4 @@
-package com.example.mlseriesdemonstrator.helpers.vision;
+package com.example.mlseriesdemonstrator.helpers.vision.drowsiness;
 
 import com.google.mlkit.vision.face.Face;
 

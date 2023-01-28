@@ -110,7 +110,7 @@ public abstract class MLVideoHelperActivity extends AppCompatActivity {
     }
 
     void bindPreview(@NonNull ProcessCameraProvider cameraProvider) {
-        int lensFacing = CameraSelector.LENS_FACING_BACK;
+        int lensFacing = getLensFacing();
         Preview preview = new Preview.Builder()
                 .setTargetAspectRatio(AspectRatio.RATIO_4_3)
                 .build();
@@ -199,6 +199,10 @@ public abstract class MLVideoHelperActivity extends AppCompatActivity {
 
         byte[] imageBytes = out.toByteArray();
         return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+    }
+
+    protected int getLensFacing() {
+        return CameraSelector.LENS_FACING_BACK;
     }
 
     protected abstract VisionBaseProcessor setProcessor();

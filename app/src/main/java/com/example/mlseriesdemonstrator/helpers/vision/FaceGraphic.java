@@ -1,5 +1,7 @@
 package com.example.mlseriesdemonstrator.helpers.vision;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -8,6 +10,8 @@ import android.graphics.RectF;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.example.mlseriesdemonstrator.R;
+import com.example.mlseriesdemonstrator.helpers.vision.obscure.ObscureType;
 import com.google.mlkit.vision.face.Face;
 import com.google.mlkit.vision.face.FaceContour;
 import com.google.mlkit.vision.face.FaceLandmark;
@@ -43,12 +47,14 @@ public class FaceGraphic extends GraphicOverlay.Graphic {
   private final Paint[] idPaints;
   private final Paint[] boxPaints;
   private final Paint[] labelPaints;
+  private final Bitmap smileyBitmap;
   private boolean isDrowsy;
   public RectF faceBoundingBox;
   private Face face;
   public int age;
   public int gender;
   public String name;
+  public ObscureType obscureType = ObscureType.NONE;
 
   public FaceGraphic(GraphicOverlay overlay, Face face, boolean isDrowsy, int width, int height) {
     this(overlay, face, isDrowsy, width, height, -1, -1);
@@ -56,7 +62,7 @@ public class FaceGraphic extends GraphicOverlay.Graphic {
 
   public FaceGraphic(GraphicOverlay overlay, Face face, boolean isDrowsy, int width, int height, int age, int gender) {
       super(overlay, width, height);
-
+    smileyBitmap = BitmapFactory.decodeResource(overlay.getResources(), R.drawable.smiley);
     this.isDrowsy = isDrowsy;
     this.face = face;
     this.age = age;
@@ -178,11 +184,38 @@ public class FaceGraphic extends GraphicOverlay.Graphic {
       yLabelOffset += lineHeight;
     }
 
-    // Draws all face contours.
-    for (FaceContour contour : face.getAllContours()) {
-      for (PointF point : contour.getPoints()) {
-        canvas.drawCircle(
-            translateX(point.x), translateY(point.y), FACE_POSITION_RADIUS, facePositionPaint);
+    if (obscureType == ObscureType.SMILEY) {
+      canvas.drawBitmap(smileyBitmap, null, faceBoundingBox, null);
+
+    } else if (obscureType == ObscureType.TRANSLUCENT) {
+      Paint translucentPaint = new Paint();
+      translucentPaint.setColor(Color.WHITE);
+      translucentPaint.setAlpha(240); // 0 - 255
+      translucentPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+      RectF faceOval = new RectF(faceBoundingBox);
+      if (!face.getAllContours().isEmpty()) {
+        float minX = Float.MAX_VALUE;
+        float maxX = Float.MIN_VALUE;
+        for (FaceContour faceContour : face.getAllContours()) {
+          if (faceContour.getFaceContourType() == FaceContour.FACE) {
+            for (PointF point : faceContour.getPoints()) {
+              minX = Math.min(minX, point.x);
+              maxX = Math.max(maxX, point.x);
+            }
+          }
+        }
+        faceOval.left = translateX(minX);
+        faceOval.right = translateX(maxX);
+      }
+      canvas.drawOval(faceOval, translucentPaint);
+
+    } else if (obscureType == ObscureType.NONE) {
+      // Draws all face contours.
+      for (FaceContour contour : face.getAllContours()) {
+        for (PointF point : contour.getPoints()) {
+          canvas.drawCircle(
+                  translateX(point.x), translateY(point.y), FACE_POSITION_RADIUS, facePositionPaint);
+        }
       }
     }
 

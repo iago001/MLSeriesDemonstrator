@@ -3,7 +3,7 @@ package com.example.mlseriesdemonstrator.object;
 import android.os.Bundle;
 
 import com.example.mlseriesdemonstrator.helpers.MLVideoHelperActivity;
-import com.example.mlseriesdemonstrator.helpers.vision.FaceDrowsinessDetectorProcessor;
+import com.example.mlseriesdemonstrator.helpers.vision.drowsiness.FaceDrowsinessDetectorProcessor;
 import com.example.mlseriesdemonstrator.helpers.vision.VisionBaseProcessor;
 
 public class DriverDrowsinessDetectionActivity extends MLVideoHelperActivity {

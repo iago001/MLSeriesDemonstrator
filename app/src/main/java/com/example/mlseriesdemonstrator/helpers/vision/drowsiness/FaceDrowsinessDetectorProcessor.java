@@ -1,4 +1,4 @@
-package com.example.mlseriesdemonstrator.helpers.vision;
+package com.example.mlseriesdemonstrator.helpers.vision.drowsiness;
 
 
 import android.graphics.Bitmap;
@@ -9,6 +9,9 @@ import androidx.annotation.OptIn;
 import androidx.camera.core.ExperimentalGetImage;
 import androidx.camera.core.ImageProxy;
 
+import com.example.mlseriesdemonstrator.helpers.vision.FaceGraphic;
+import com.example.mlseriesdemonstrator.helpers.vision.GraphicOverlay;
+import com.example.mlseriesdemonstrator.helpers.vision.VisionBaseProcessor;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;

@@ -21,6 +21,7 @@ import com.example.mlseriesdemonstrator.object.DriverDrowsinessDetectionActivity
 import com.example.mlseriesdemonstrator.object.FaceDetectionActivity;
 import com.example.mlseriesdemonstrator.object.FaceRecognitionActivity;
 import com.example.mlseriesdemonstrator.object.ObjectDetectionActivity;
+import com.example.mlseriesdemonstrator.object.ObscureFaceActivity;
 import com.example.mlseriesdemonstrator.object.PoseDetectionActivity;
 import com.example.mlseriesdemonstrator.object.VisitorAnalysisActivity;
 import com.example.mlseriesdemonstrator.text.SpamTextDetectionActivity;
@@ -47,6 +48,7 @@ public class MainActivity extends AppCompatActivity implements AlgoListener {
         arrayList.add(new Algo(R.drawable.baseline_accessibility_black_48, "Pose Detection", PoseDetectionActivity.class));
         arrayList.add(new Algo(R.drawable.baseline_portrait_black_48, "Visitor Analysis", VisitorAnalysisActivity.class));
         arrayList.add(new Algo(R.drawable.baseline_portrait_black_48, "Face recognition", FaceRecognitionActivity.class));
+        arrayList.add(new Algo(R.drawable.baseline_portrait_black_48, "Hide/Obscure Face", ObscureFaceActivity.class));
 
         AlgoAdapter algoAdapter = new AlgoAdapter(arrayList, this);
         RecyclerView recyclerView = findViewById(R.id.main_recycler_view);
