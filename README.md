@@ -35,3 +35,6 @@ Youtube playlist: https://www.youtube.com/playlist?list=PLRX9Q8jR15s1ygC_apa-iTf
 
 ## Face Recognition
 ![Screenshot_20230119_125624_MLSeriesDemonstrator](https://user-images.githubusercontent.com/14807740/213403827-af250dd5-03c3-4e3c-85aa-0d99b848a0f5.jpg)
+
+## Hide face using an image or draw over it
+
